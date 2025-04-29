@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { ClientLayout } from "./client";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
+      <Suspense fallback={<div>Loading Chat...</div>}>
+      <ClientLayout>{children}</ClientLayout>
+      </Suspense>
       </body>
     </html>
   );
