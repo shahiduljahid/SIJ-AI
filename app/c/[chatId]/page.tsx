@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { ChatInterface } from '@/components/chat-interface';
 
@@ -30,7 +30,9 @@ export default function ChatPage() {
   // No longer needs Suspense just for searchParams
   return (
     <div className="h-full">
+      <Suspense fallback={<div>Loading Chat...</div>}>
         <ChatPageContent />
+      </Suspense>
     </div>
   );
 } 
