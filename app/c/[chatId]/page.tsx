@@ -30,9 +30,7 @@ export default function ChatPage() {
   // No longer needs Suspense just for searchParams
   return (
     <div className="h-full">
-      {/* <Suspense fallback={<div>Loading Chat...</div>}> */}
         <ChatPageContent />
-      {/* </Suspense> */}
     </div>
   );
 } 
