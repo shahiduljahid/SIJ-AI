@@ -18,7 +18,7 @@ import { getContextItems, ContextItem, deleteContextItem } from '@/app/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { DeleteConfirmationModal } from "@/components/delete-confirmation-modal";
-import { createBrowserClient } from '@supabase/ssr';
+import { createSupabaseClient } from '@/utils/supabase/client';
 import { Session } from '@supabase/supabase-js';
 
 // Helper to format date strings
@@ -40,10 +40,7 @@ function formatDate(dateString: string): string {
 
 export default function ContextPage() {
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createSupabaseClient();
   const [items, setItems] = useState<ContextItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

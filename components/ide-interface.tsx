@@ -15,7 +15,7 @@ import { SettingsModal } from "./settings-modal";
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { ContextSelectorModal } from "./context-selector-modal";
-import { createBrowserClient } from '@supabase/ssr';
+import { createSupabaseClient } from '@/utils/supabase/client';
 import { Session } from '@supabase/supabase-js';
 
 // Define available models with display names within this component
@@ -43,10 +43,7 @@ const placeholderPrompts = [
 
 export function IdeInterfaceComponent() {
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createSupabaseClient();
   const [prompt, setPrompt] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

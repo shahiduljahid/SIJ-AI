@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createFallbackSupabaseClient, isSupabaseConfigured } from "./shared";
 
-export async function createSupabaseClient() {
+export async function createSupabaseClient(): Promise<SupabaseClient> {
+  if (!isSupabaseConfigured()) {
+    return createFallbackSupabaseClient();
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(
