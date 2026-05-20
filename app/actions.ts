@@ -9,6 +9,20 @@ import { SupabaseClient } from "@supabase/supabase-js";
 // Assuming MessageParam might not be found by linter yet
 // import { MessageParam } from '@anthropic-ai/sdk/resources/messages'; 
 
+function getAppOrigin() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (siteUrl) {
+    return new URL(siteUrl).origin;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return "http://localhost:3000";
+}
+
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -55,7 +69,7 @@ export const signUpAction = async (formData: FormData) => {
     email,
     password,
     options: {
-      emailRedirectTo: `${new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').origin}/auth/callback`,
+      emailRedirectTo: `${getAppOrigin()}/auth/callback`,
     },
   });
 
@@ -88,7 +102,7 @@ export async function createCheckout(priceId: string) {
   const client = await createUpdateClient();
   const { data, error } = await client.billing.createCheckoutSession(
     priceId,
-    { redirect_url: `${new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').origin}/account?checkout=success` }
+    { redirect_url: `${getAppOrigin()}/account?checkout=success` }
   );
 
   if (error) {
@@ -265,6 +279,17 @@ const defaultModelSettings: UserModelSettings = {
   selectedModel: 'deepseek-chat' // Make 3.7 default selected
 };
 
+function normalizeModelSettings(settings: UserModelSettings): UserModelSettings {
+  if (settings.enabledModels.length > 0 && settings.selectedModel) {
+    return settings;
+  }
+
+  return {
+    enabledModels: defaultModelSettings.enabledModels,
+    selectedModel: defaultModelSettings.selectedModel,
+  };
+}
+
 /**
  * Fetches the user's model settings (enabled models and last selected model).
  * Returns default settings if no user or profile found, or if columns are null.
@@ -299,8 +324,8 @@ export async function getUserModelSettings(): Promise<UserModelSettings> {
 
     // Process the fetched data, providing defaults if columns are null
     const settings: UserModelSettings = {
-        enabledModels: data?.enabled_models ?? defaultModelSettings.enabledModels,
-        selectedModel: data?.selected_model ?? null 
+      enabledModels: data?.enabled_models?.length ? data.enabled_models : defaultModelSettings.enabledModels,
+      selectedModel: data?.selected_model ?? null 
     };
 
     // Validate if the saved selected model is actually enabled
@@ -321,8 +346,25 @@ export async function getUserModelSettings(): Promise<UserModelSettings> {
         }
     }
 
-    // console.log("[ACTION LOG] Returning processed user settings:", settings); // Removed log
-    return settings;
+    // Ensure a newly created profile always exposes a usable model selection.
+    const normalizedSettings = normalizeModelSettings(settings);
+
+    if (
+      normalizedSettings.enabledModels !== settings.enabledModels ||
+      normalizedSettings.selectedModel !== settings.selectedModel
+    ) {
+      await supabase
+        .from('profiles')
+        .update({
+          enabled_models: normalizedSettings.enabledModels,
+          selected_model: normalizedSettings.selectedModel,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+    }
+
+    // console.log("[ACTION LOG] Returning processed user settings:", normalizedSettings); // Removed log
+    return normalizedSettings;
 
   } catch (err) {
     console.error("Unexpected error in getUserModelSettings:", err);

@@ -217,11 +217,13 @@ SECURITY DEFINER -- Important for accessing auth.users
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
+  INSERT INTO public.profiles (id, full_name, avatar_url, enabled_models, selected_model)
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data ->> 'full_name', -- Attempt to get full_name from metadata
-    NEW.raw_user_meta_data ->> 'avatar_url' -- Attempt to get avatar_url from metadata
+    NEW.raw_user_meta_data ->> 'avatar_url', -- Attempt to get avatar_url from metadata
+    ARRAY['deepseek-chat'],
+    'deepseek-chat'
   );
   RETURN NEW;
 END;
@@ -231,6 +233,18 @@ $$;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Backfill profiles that were created before the default model seed existed.
+UPDATE public.profiles
+SET
+  enabled_models = CASE
+    WHEN enabled_models IS NULL OR cardinality(enabled_models) = 0 THEN ARRAY['deepseek-chat']
+    ELSE enabled_models
+  END,
+  selected_model = COALESCE(selected_model, 'deepseek-chat')
+WHERE selected_model IS NULL
+   OR enabled_models IS NULL
+   OR cardinality(enabled_models) = 0;
 
 -- ==========================================================================\
 -- End of Script\
